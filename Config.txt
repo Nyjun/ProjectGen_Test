@@ -1,0 +1,11 @@
+
+Configurations with multiple values : values must be separated by ','
+For example : multiple Client Names.
+
+> Client Name=PersistantStudio,NViovy;
+> Run-time type information(On/Off)=On;
+> Enable C++ Exceptions(On/Off/seh)=seh;
+> Vector Extensions=avx;
+
+Allowed extensions : avx, avx2, ia32, sse, sse2, sse3,
+	ssse3, sse4.1, neon, mxu.
