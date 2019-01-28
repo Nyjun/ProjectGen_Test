@@ -1,18 +1,21 @@
 
 import os
+import subprocess
+from subprocess import Popen, PIPE
 
 # Defining Defaults
 clientNames = []
 targetFolders = []
 rtti = False
-noExc = False
+noExc = ""
 vectExt = ""
-AllowedVectorExtensions = ["AVX", "AVX2", "IA32", "SSE", "SSE2", "SSE3",\
- "SSSE3", "SSE4.1", "NEON", "MXU"]
+AllowedExceptionHanfling = ["On", "Off", "seh"]
+AllowedVectorExtensions = ["avx", "avx2", "ia32", "sse", "sse2", "sse3",\
+ "ssse3", "sse4.1", "neon", "mxu"]
 
 # Parsing Config File
 tmp = ""
-state = 0
+state = 0	# ClientName(1), rtti(2), no-exception(3), vector-extensions(4)
 read = False
 file = open("Config.txt", "r")
 for line in file:
@@ -28,7 +31,8 @@ for line in file:
 			if state == 2:
 				rtti = tmp == "On"
 			if state == 3:
-				noExc = tmp == "on"
+				if tmp in AllowedVectorExtensions:
+					vectExt = tmp
 			if state == 4:
 				if tmp in AllowedVectorExtensions:
 					vectExt = tmp
@@ -50,16 +54,55 @@ if len(clientNames) == 0:
 	clientNames.append("NewProject")
 	targetFolders.append(os.path.join(".","NewProject"))
 
-# Generate folder(s)
+# Generate folders
 for folder in targetFolders:
 	if not os.path.exists(folder):
 		os.makedirs(folder)
+	winfolder = os.path.join(folder, "windows")
+	linfolder = os.path.join(folder, "linux")
+	if not os.path.exists(winfolder):
+		os.makedirs(winfolder)
+	if not os.path.exists(linfolder):
+		os.makedirs(linfolder)
+
+# Generate Option/Arg list
+callList = [os.path.join("bin" , "premake5")]
+if rtti:
+	callList.append("--rtti=\"On\"")
+if noExc != "":
+	callList.append("--no-exception=" + noExc)
+if vectExt != "":
+	callList.append("--vector-ext=" + vectExt)
 
 # Call Premake5
 for client in clientNames:
 	if os.name == 'nt':
-		pass
+		callList.append("vs2015")
+		callList.append("--to=" + os.path.join(client, "windows"))
+		subprocess.run(callList)
+		callList.remove("--to=" + os.path.join(client, "windows"))
+		callList.remove("vs2015")
+		
+		callList.append("--os=linux")
+		callList.append("gmake2")
+		callList.append("--to=" + os.path.join(client, "linux"))
+		subprocess.run(callList)
+		callList.remove("--to=" + os.path.join(client, "linux"))
+		callList.remove("gmake2")
+		callList.remove("--os=linux")
 	else:
-		pass
+		callList.append("--os=windows")
+		callList.append("vs2015")
+		callList.append("--to=" + os.path.join(client, "windows"))
+		subprocess.run(callList)
+		callList.remove("--to=" + os.path.join(client, "windows"))
+		callList.remove("vs2015")
+		callList.remove("--os=windows")
+		
+		callList.append("gmake2")
+		callList.append("--to=" + os.path.join(client, "linux"))
+		subprocess.run(callList)
+		callList.remove("--to=" + os.path.join(client, "linux"))
+		callList.remove("gmake2")
 
 
